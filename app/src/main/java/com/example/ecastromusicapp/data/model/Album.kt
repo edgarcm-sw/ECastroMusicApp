@@ -5,5 +5,5 @@ data class Album(
     val title: String,
     val artist: String,
     val image: String,
-    val description: String? = null
+    val description: String
 )
