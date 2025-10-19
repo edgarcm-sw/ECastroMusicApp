@@ -25,7 +25,7 @@ import coil3.compose.AsyncImage
 import com.example.ecastromusicapp.data.model.Album
 import com.example.ecastromusicapp.services.AlbumService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import androidx.compose.foundation.lazy.items
@@ -33,7 +33,7 @@ import androidx.compose.foundation.lazy.items
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onAlbumClick: (Int) -> Unit
+    onAlbumClick: (String) -> Unit
 ) {
     var albums by remember { mutableStateOf<List<Album>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -41,25 +41,26 @@ fun HomeScreen(
     var currentPlayingAlbum by remember { mutableStateOf<Album?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
-
     LaunchedEffect(true) {
+        isLoading = true
         try {
-            val retrofit = Retrofit
-                .Builder()
-                .baseUrl("https://music.juanfrausto.com/api/albums")
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://music.juanfrausto.com/api/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
+
             val service = retrofit.create(AlbumService::class.java)
-            val result = async(Dispatchers.IO) {
-                service.getAllAbum()
+            val result = withContext(Dispatchers.IO) {
+                service.getAllAlbums()
             }
-            Log.i("HomeScreen", "${result.await()}")
-            albums = result.await()
+
+            albums = result
+            Log.i("HomeScreen", "Albums loaded: ${result.size}")
             isLoading = false
         } catch (e: Exception) {
+            error = e.message ?: "Unknown error"
             isLoading = false
-            Log.e("HomeScreen", e.toString())
+            Log.e("HomeScreen", "Error loading albums", e)
         }
     }
 
@@ -119,11 +120,23 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "Error: $error",
-                            color = Color.White,
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(16.dp)
-                        )
+                        ) {
+                            Text(
+                                "Error loading albums",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                error!!,
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
                 else -> {
@@ -134,7 +147,6 @@ fun HomeScreen(
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         item {
-                            // Header with gradient
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -159,7 +171,7 @@ fun HomeScreen(
                                         fontSize = 16.sp
                                     )
                                     Text(
-                                        text = "Juan Frausto",
+                                        text = "Edgar Castro",
                                         color = Color.White,
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold
@@ -171,7 +183,6 @@ fun HomeScreen(
                         item {
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Albums Section
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -215,7 +226,6 @@ fun HomeScreen(
                         item {
                             Spacer(modifier = Modifier.height(32.dp))
 
-                            // Recently Played Section
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

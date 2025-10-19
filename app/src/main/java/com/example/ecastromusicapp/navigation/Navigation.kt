@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 object HomeRoute
 
 @Serializable
-data class DetailRoute(val albumId: Int)
+data class DetailRoute(val albumId: String)

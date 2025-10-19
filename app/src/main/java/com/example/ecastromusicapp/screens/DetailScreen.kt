@@ -32,7 +32,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
-    albumId: Int,
+    albumId: String,
     onBackClick: () -> Unit
 ) {
     var album by remember { mutableStateOf<Album?>(null) }
@@ -40,23 +40,26 @@ fun DetailScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(true) {
+    LaunchedEffect(albumId) {
+        isLoading = true
         try {
-            val retrofit = Retrofit
-                .Builder()
-                .baseUrl("https://music.juanfrausto.com/api/albums")
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://music.juanfrausto.com/api/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
+
             val service = retrofit.create(AlbumService::class.java)
             val result = withContext(Dispatchers.IO) {
                 service.getAlbumById(albumId)
             }
+
             album = result
-            Log.i("DetailScreen", album.toString())
+            isLoading = false
+            Log.i("DetailScreen", "Album loaded: ${album?.title}")
         } catch (e: Exception) {
-            Log.e("DetailScreen", e.toString())
+            error = e.message ?: "Unknown error"
+            isLoading = false
+            Log.e("DetailScreen", "Error loading album", e)
         }
     }
 
@@ -90,11 +93,27 @@ fun DetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "Error: $error",
-                            color = Color.White,
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(16.dp)
-                        )
+                        ) {
+                            Text(
+                                "Error loading album",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                error!!,
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = onBackClick) {
+                                Text("Go Back")
+                            }
+                        }
                     }
                 }
                 album != null -> {
